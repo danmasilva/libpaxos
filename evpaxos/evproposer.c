@@ -42,6 +42,7 @@ struct evproposer
 	struct proposer* state;
 	struct peers* peers;
 	struct timeval tv;
+	struct timeval last_election;
 	struct event* timeout_ev;
 };
 
@@ -76,6 +77,12 @@ peer_send_election_victory(struct peer* p, void* arg)
 }
 
 static void
+peer_send_heartbeat(struct peer* p, void *arg)
+{
+    send_paxos_heartbeat(peer_get_buffer(p), arg);
+}
+
+static void
 proposer_preexecute(struct evproposer* p)
 {
 	int i;
@@ -96,6 +103,7 @@ proposer_start_election(struct evproposer* p)
     struct paxos_election_message* msg = malloc(sizeof(struct paxos_election_message));
     msg->pid = p->id;
     peers_foreach_proposer(p->peers, peer_send_election_message, msg);
+    gettimeofday(&p->last_election, NULL);
 }
 
 static void
@@ -168,10 +176,11 @@ evproposer_handle_election_message(struct peer* p, paxos_message* msg, void* arg
     paxos_log_debug("RECEIVED election message with iid %d", proposer->id);
     //deal with the election message here
     if(proposer->id>election_message->pid){
-        //send election_answer
+        //send election_answer here
+        struct paxos_election_answer msg;
+        msg.pid = proposer->id;
+        peer_send_election_answer(p, &msg);
     }
-
-    //try_accept(proposer);
 }
 
 static void
@@ -192,9 +201,26 @@ evproposer_handle_election_victory(struct peer* p, paxos_message* msg, void* arg
     //try_accept(proposer);
 }
 
+// Returns t2 - t1 in microseconds.
+//método copiado de client.c
+static long
+timeval_diff(struct timeval *t1, struct timeval *t2)
+{
+    long us;
+    us = (t2->tv_sec - t1->tv_sec) * 1e6;
+    if (us < 0)
+        return 0;
+    us += (t2->tv_usec - t1->tv_usec);
+    return us;
+}
+
 static void
 evproposer_check_timeouts(evutil_socket_t fd, short event, void *arg)
 {
+    static int flag = 0;
+    flag = 1-flag;
+
+
 	struct evproposer* p = arg;
 	struct timeout_iterator* iter = proposer_timeout_iterator(p->state);
 
@@ -209,7 +235,43 @@ evproposer_check_timeouts(evutil_socket_t fd, short event, void *arg)
 		paxos_log_info("Instance %d timed out in phase 2.", ar.iid);
 		peers_foreach_acceptor(p->peers, peer_send_accept, &ar);
 	}
-	
+
+    //verificar election message aqui.
+    paxos_election_victory ev;
+	ev.pid = p->id;
+    struct timeval now;
+	gettimeofday(&now, NULL);
+	if(timeval_diff(&p->last_election, &now)>2){
+	    peers_foreach_proposer(p->peers, peer_send_election_victory, &ev);
+	}
+
+
+
+
+	/**
+	 * valida se heartbeat chegou a tempo
+	 */
+	/*paxos_heartbeat ph;
+	int i;
+	while (i=timeout_iterator_heartbeat_message(iter, &ph)){
+	    paxos_log_info("Instance %d received election message.", ph.pid);
+	    peers_foreach_proposer(p->peers, peer_send_heartbeat, &ph);
+	    //TODO: do something about receiving the message here.
+	    if(i==0){//espera maior que 2 segundos
+	        //enviar election message aqui?
+	    }
+	}*/
+
+    /**
+     * send heartbeat message every second for all proposers.
+     */
+    /*paxos_heartbeat ph;
+    while (timeout_iterator_heartbeat_message(iter, &ph)){
+        paxos_log_info("Instance %d received heartbeat message.", ph.pid);
+        peers_foreach_proposer(p->peers, peer_send_heartbeat, &ph);
+        //TODO: do something about receiving the message here?
+    }*/
+
 	timeout_iterator_free(iter);
 	event_add(p->timeout_ev, &p->tv);
 }

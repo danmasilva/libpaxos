@@ -49,6 +49,7 @@ int recv_paxos_message(struct evbuffer* in, paxos_message* out);
 void send_paxos_election_message(struct bufferevent* bev, paxos_election_message* msg);
 void send_paxos_election_answer(struct bufferevent* bev, paxos_election_answer* msg);
 void send_paxos_election_victory(struct bufferevent* bev, paxos_election_victory* msg);
+void send_paxos_heartbeat(struct bufferevent* bev, paxos_heartbeat * msg);
 
 
 #ifdef __cplusplus

@@ -33,77 +33,77 @@
 
 struct paxos_value
 {
-	int paxos_value_len;
-	char *paxos_value_val;
+    int paxos_value_len;
+    char *paxos_value_val;
 };
 typedef struct paxos_value paxos_value;
 
 struct paxos_prepare
 {
-	uint32_t iid;
-	uint32_t ballot;
+    uint32_t iid;
+    uint32_t ballot;
 };
 typedef struct paxos_prepare paxos_prepare;
 
 struct paxos_promise
 {
-	uint32_t aid;
-	uint32_t iid;
-	uint32_t ballot;
-	uint32_t value_ballot;
-	paxos_value value;
+    uint32_t aid;
+    uint32_t iid;
+    uint32_t ballot;
+    uint32_t value_ballot;
+    paxos_value value;
 };
 typedef struct paxos_promise paxos_promise;
 
 struct paxos_accept
 {
-	uint32_t iid;
-	uint32_t ballot;
-	paxos_value value;
+    uint32_t iid;
+    uint32_t ballot;
+    paxos_value value;
 };
 typedef struct paxos_accept paxos_accept;
 
 struct paxos_accepted
 {
-	uint32_t aid;
-	uint32_t iid;
-	uint32_t ballot;
-	uint32_t value_ballot;
-	paxos_value value;
+    uint32_t aid;
+    uint32_t iid;
+    uint32_t ballot;
+    uint32_t value_ballot;
+    paxos_value value;
 };
 typedef struct paxos_accepted paxos_accepted;
 
 struct paxos_preempted
 {
-	uint32_t aid;
-	uint32_t iid;
-	uint32_t ballot;
+    uint32_t aid;
+    uint32_t iid;
+    uint32_t ballot;
 };
 typedef struct paxos_preempted paxos_preempted;
 
 struct paxos_repeat
 {
-	uint32_t from;
-	uint32_t to;
+    uint32_t from;
+    uint32_t to;
 };
 typedef struct paxos_repeat paxos_repeat;
 
 struct paxos_trim
 {
-	uint32_t iid;
+    uint32_t iid;
 };
 typedef struct paxos_trim paxos_trim;
 
 struct paxos_acceptor_state
 {
-	uint32_t aid;
-	uint32_t trim_iid;
+    uint32_t aid;
+    uint32_t trim_iid;
 };
 typedef struct paxos_acceptor_state paxos_acceptor_state;
 
 struct paxos_client_value
 {
-	paxos_value value;
+    paxos_value value;
 };
 typedef struct paxos_client_value paxos_client_value;
 
@@ -125,41 +125,49 @@ struct paxos_election_victory
 };
 typedef struct paxos_election_victory paxos_election_victory;
 
+struct paxos_heartbeat
+{
+        uint32_t pid;
+};
+typedef struct paxos_heartbeat paxos_heartbeat;
+
 enum paxos_message_type
 {
-	PAXOS_PREPARE,
-	PAXOS_PROMISE,
-	PAXOS_ACCEPT,
-	PAXOS_ACCEPTED,
-	PAXOS_PREEMPTED,
-	PAXOS_REPEAT,
-	PAXOS_TRIM,
-	PAXOS_ACCEPTOR_STATE,
-	PAXOS_CLIENT_VALUE,
-	PAXOS_ELECTION_MESSAGE,
-	PAXOS_ELECTION_ANSWER,
-	PAXOS_ELECTION_VICTORY
+    PAXOS_PREPARE,
+    PAXOS_PROMISE,
+    PAXOS_ACCEPT,
+    PAXOS_ACCEPTED,
+    PAXOS_PREEMPTED,
+    PAXOS_REPEAT,
+    PAXOS_TRIM,
+    PAXOS_ACCEPTOR_STATE,
+    PAXOS_CLIENT_VALUE,
+    PAXOS_ELECTION_MESSAGE,
+    PAXOS_ELECTION_ANSWER,
+    PAXOS_ELECTION_VICTORY,
+    PAXOS_HEARTBEAT
 };
 typedef enum paxos_message_type paxos_message_type;
 
 struct paxos_message
 {
-	paxos_message_type type;
-	union
-	{
-		paxos_prepare prepare;
-		paxos_promise promise;
-		paxos_accept accept;
-		paxos_accepted accepted;
-		paxos_preempted preempted;
-		paxos_repeat repeat;
-		paxos_trim trim;
-		paxos_acceptor_state state;
-		paxos_client_value client_value;
-		paxos_election_message election_message;
-		paxos_election_answer election_answer;
-		paxos_election_victory election_victory;
-	} u;
+    paxos_message_type type;
+    union
+    {
+        paxos_prepare prepare;
+        paxos_promise promise;
+        paxos_accept accept;
+        paxos_accepted accepted;
+        paxos_preempted preempted;
+        paxos_repeat repeat;
+        paxos_trim trim;
+        paxos_acceptor_state state;
+        paxos_client_value client_value;
+        paxos_election_message election_message;
+        paxos_election_answer election_answer;
+        paxos_election_victory election_victory;
+        paxos_heartbeat paxos_heartbeat;
+    } u;
 };
 typedef struct paxos_message paxos_message;
 

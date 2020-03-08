@@ -60,6 +60,7 @@ struct proposer
 
 struct timeout_iterator
 {
+    //TODO timeout_iterator here
 	khiter_t pi, ai;
 	struct timeval timeout;
 	struct proposer* proposer;
@@ -357,6 +358,46 @@ timeout_iterator_accept(struct timeout_iterator* iter, paxos_accept* out)
 	return 1;
 }
 
+/**
+ *
+ * @param iter
+ * @param out
+ * @return
+ */
+
+//talvez eu nao precise do timeout_iterator, mas só do timeout
+int
+//timeout_iterator_heartbeat_message(struct timeout_iterator* iter, paxos_heartbeat* out){
+timeout_iterator_heartbeat_message(struct timeout_iterator* iter, paxos_heartbeat* out){
+    struct instance* inst;
+    struct proposer* p = iter->proposer;
+
+    //essa instancia vem de uma matriz de instancias, o que não é o caso do heartbeat
+    inst = next_timedout(p->prepare_instances, &iter->pi, &iter->timeout);
+    inst->created_at = iter->timeout;
+    if((iter->timeout.tv_sec - inst->created_at.tv_sec)>2){
+        //send election message here?
+        //eu nao tenho o bufferevent pra iniciar uma eleição
+
+        return 0; //avisar com 0 que o tempo extrapolou o máximo possível
+    }
+    return 1; //tudo certo, ignorar esse heartbeat
+}
+/*int
+timeout_iterator_heartbeat_message(struct timeout_iterator* iter, paxos_heartbeat* out){
+    struct instance* inst;
+    struct proposer* p = iter->proposer;
+    inst = next_timedout(p->prepare_instances, &iter->pi, &iter->timeout);
+    inst->created_at = iter->timeout;
+    if((iter->timeout.tv_sec - inst->created_at.tv_sec)>2){
+        //send election message here?
+        //eu nao tenho o bufferevent pra iniciar uma eleição
+
+        return 0; //avisar com 0 que o tempo extrapolou o máximo possível
+    }
+    return 1; //tudo certo, ignorar esse heartbeat
+}*/
+
 void
 timeout_iterator_free(struct timeout_iterator* iter)
 {
@@ -459,6 +500,7 @@ instance_has_promised_value(struct instance* inst)
 static int
 instance_has_timedout(struct instance* inst, struct timeval* now)
 {
+    //TODO: instance_has_timedout
 	int diff = now->tv_sec - inst->created_at.tv_sec;
 	return diff >= paxos_config.proposer_timeout;
 }

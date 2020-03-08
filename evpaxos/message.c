@@ -181,3 +181,11 @@ send_paxos_election_victory(struct bufferevent* bev, paxos_election_victory* v)
     send_paxos_message(bev, &msg);
     paxos_log_debug("Send election victory with iid %d", v->pid);
 }
+
+void send_paxos_heartbeat(struct bufferevent* bev, paxos_heartbeat * h)
+{
+    paxos_message msg = {
+            .type = PAXOS_HEARTBEAT,
+            .u.paxos_heartbeat = *h
+    };
+}

@@ -262,6 +262,21 @@ void msgpack_unpack_paxos_election_victory(msgpack_object* o, paxos_election_vic
     msgpack_unpack_uint32_at(o, &v->pid, &i);
 }
 
+void msgpack_pack_paxos_heartbeat(msgpack_packer* p, paxos_heartbeat * H)
+{
+    msgpack_pack_array(p, 2);
+    msgpack_pack_int32(p, PAXOS_HEARTBEAT);
+    msgpack_pack_uint32(p, H->pid);
+}
+
+void msgpack_unpack_paxos_heartbeat(msgpack_object* o, paxos_heartbeat * h)
+{
+    int i = 1;
+    msgpack_unpack_uint32_at(o, &h->pid, &i);
+}
+
+
+
 void msgpack_pack_paxos_message(msgpack_packer* p, paxos_message* v)
 {
 	switch (v->type) {
@@ -299,8 +314,11 @@ void msgpack_pack_paxos_message(msgpack_packer* p, paxos_message* v)
 		msgpack_pack_paxos_client_value(p, &v->u.client_value);
 		break;
 	case PAXOS_ELECTION_VICTORY:
-		msgpack_pack_paxos_election_victory(p, &v->u.client_value);
+		msgpack_pack_paxos_election_victory(p, &v->u.election_victory);
 		break;
+    case PAXOS_HEARTBEAT:
+	    msgpack_pack_paxos_heartbeat(p, &v->u.paxos_heartbeat);
+	    break;
 	}
 }
 
@@ -344,6 +362,8 @@ void msgpack_unpack_paxos_message(msgpack_object* o, paxos_message* v)
 	case PAXOS_ELECTION_VICTORY:
 		msgpack_unpack_paxos_election_victory(o, &v->u.election_victory);
 		break;
-
+    case PAXOS_HEARTBEAT:
+        msgpack_unpack_paxos_heartbeat(o, &v->u.paxos_heartbeat);
+        break;
 	}
 }
