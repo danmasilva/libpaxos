@@ -372,14 +372,6 @@ evproposer_init(int id, const char* config_file, struct event_base* base)
 }
 
 void
-free_internal(struct evproposer* p)
-{
-	event_free(p->timeout_ev);
-	proposer_free(p->state);
-	free(p);
-}
-
-void
 evproposer_free_internal(struct evproposer* p)
 {
     event_free(p->timeout_ev);
