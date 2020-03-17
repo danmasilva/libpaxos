@@ -159,7 +159,7 @@ send_paxos_election_answer(struct bufferevent* bev, paxos_election_answer* a)
             .type = PAXOS_ELECTION_ANSWER,
             .u.election_answer = *a };
     send_paxos_message(bev, &msg);
-    paxos_log_debug("Send election answer with iid %d", a->pid);
+    paxos_log_error("Send election answer with iid %d", a->pid);
 }
 
 void
@@ -169,7 +169,7 @@ send_paxos_election_message(struct bufferevent* bev, paxos_election_message* e)
             .type = PAXOS_ELECTION_MESSAGE,
             .u.election_message = *e };
     send_paxos_message(bev, &msg);
-    paxos_log_debug("Send election message with iid %d", e->pid);
+    paxos_log_error("Send election message with iid %d", e->pid);
 }
 
 void
@@ -179,7 +179,7 @@ send_paxos_election_victory(struct bufferevent* bev, paxos_election_victory* v)
             .type = PAXOS_ELECTION_VICTORY,
             .u.election_victory = *v };
     send_paxos_message(bev, &msg);
-    paxos_log_debug("Send election victory with iid %d", v->pid);
+    paxos_log_error("Send election victory with iid %d", v->pid);
 }
 
 void send_paxos_heartbeat(struct bufferevent* bev, paxos_heartbeat * h)
@@ -188,4 +188,6 @@ void send_paxos_heartbeat(struct bufferevent* bev, paxos_heartbeat * h)
             .type = PAXOS_HEARTBEAT,
             .u.paxos_heartbeat = *h
     };
+    send_paxos_message(bev, &msg);
+    paxos_log_error("Send heartbeat with iid %d", h->pid);
 }
