@@ -108,10 +108,10 @@ static void
 proposer_start_election(struct evproposer* p)
 {
     //start election
-    struct paxos_election_message* msg = malloc(sizeof(struct paxos_election_message));
-    msg->pid = p->id;
+    struct paxos_election_message msg;
+    msg.pid = p->id;
     p->receivedAnswer=0;
-    peers_foreach_proposer(p->peers, peer_send_election_message, msg);
+    peers_foreach_proposer(p->peers, peer_send_election_message, &msg);
     gettimeofday(&p->last_election, NULL);
 }
 
@@ -211,6 +211,10 @@ evproposer_handle_election_victory(struct peer* p, paxos_message* msg, void* arg
 
     //agora esse proposer esperará por heartbeat com esse pid every second.
     proposer->leaderId = msg->u.election_victory.pid;
+    //reseta o valor de last_heartbeat
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    proposer->last_heartbeat = now;
 }
 
 static void
@@ -222,8 +226,8 @@ evproposer_handle_heartbeat(struct peer* p, paxos_message* msg, void* arg)
     //atualiza o momento do recebimento da mensagem
     struct timeval now;
     gettimeofday(&now, NULL);
-    //confirma que é um hearbeat válido
-    if(heartbeat->pid = proposer->leaderId){
+    //confirma que é um heartbeat válido
+    if(heartbeat->pid == proposer->leaderId){
         proposer->last_heartbeat = now;
     }
 }
@@ -268,10 +272,10 @@ evproposer_check_timeouts(evutil_socket_t fd, short event, void *arg)
     gettimeofday(&now, NULL);
     int diffElectionTime = timeval_diff(&p->last_election, &now) / 1e6;
 
-	if(diffElectionTime>2 && p->leaderId == -1 && p->receivedAnswer==0){
+	if(diffElectionTime > 2 * paxos_config.proposer_timeout && p->leaderId == -1 && p->receivedAnswer==0){
         paxos_election_victory ev;
         ev.pid = p->id;
-        //seto eu mesmo como o lider da eleição
+        //seto eu mesmo como o vencedor da eleição
         p->leaderId = p->id;
 	    peers_foreach_proposer(p->peers, peer_send_election_victory, &ev);
 	}
@@ -280,13 +284,14 @@ evproposer_check_timeouts(evutil_socket_t fd, short event, void *arg)
     if(p->id == p->leaderId){
         paxos_heartbeat ph;
         ph.pid = p->leaderId;
+        p->last_heartbeat = now;
         peers_foreach_proposer(p->peers, peer_send_heartbeat, &ph);
     }
 
-
 	//verificar heartbeat aqui
-    int diffHeartbeat = timeval_diff(&p->last_election, &now) / 1e6;
-	if(p->leaderId != p->id && diffHeartbeat > 2){
+    int diffHeartbeat = timeval_diff(&p->last_heartbeat, &now) / 1e6;
+    //se ainda nao decidi por um líder, nao sou o lider e timeval excedido
+	if(p->leaderId!=-1 && p->leaderId != p->id && diffHeartbeat > 4 * paxos_config.proposer_timeout){
 	    paxos_election_message em;
         p->leaderId=-1;
 	    em.pid = p->id;
@@ -325,8 +330,8 @@ evproposer_init_internal(int id, struct evpaxos_config* c, struct peers* peers)
     peers_subscribe(peers, PAXOS_ELECTION_VICTORY, evproposer_handle_election_victory, p);
     peers_subscribe(peers, PAXOS_HEARTBEAT, evproposer_handle_heartbeat, p);
 
-	// Setup timeout
-	struct event_base* base = peers_get_event_base(peers);
+    // Setup timeout
+    struct event_base* base = peers_get_event_base(peers);
 	p->tv.tv_sec = paxos_config.proposer_timeout;
 	p->tv.tv_usec = 0;
 	p->timeout_ev = evtimer_new(base, evproposer_check_timeouts, p);

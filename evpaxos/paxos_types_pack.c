@@ -311,7 +311,7 @@ void msgpack_pack_paxos_message(msgpack_packer* p, paxos_message* v)
 		msgpack_pack_paxos_election_message(p, &v->u.election_message);
 		break;
 	case PAXOS_ELECTION_ANSWER:
-		msgpack_pack_paxos_client_value(p, &v->u.client_value);
+		msgpack_pack_paxos_election_answer(p, &v->u.election_answer);
 		break;
 	case PAXOS_ELECTION_VICTORY:
 		msgpack_pack_paxos_election_victory(p, &v->u.election_victory);
