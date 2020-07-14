@@ -252,7 +252,7 @@ start_client(const char *config, int proposer_id, int outstanding, int value_siz
 {
     struct client *client;
     client = make_client(config, proposer_id, outstanding, value_size);
-    signal(SIGPIPE, SIG_IGN); //TODO: o que isso faz?
+    signal(SIGPIPE, SIG_IGN);
     event_base_dispatch(client->base);
     client_free(client);
 }

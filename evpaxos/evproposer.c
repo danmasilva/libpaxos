@@ -48,6 +48,7 @@ struct evproposer
 	//fim lider election
 
 	int preexec_window;
+	//quem é esse state?
 	struct proposer* state;
 	struct peers* peers;
 	struct timeval tv;
@@ -158,15 +159,25 @@ evproposer_handle_preempted(struct peer* p, paxos_message* msg, void* arg)
 	}
 }
 
+
+
+
 static void
 evproposer_handle_client_value(struct peer* p, paxos_message* msg, void* arg)
 {
-	struct evproposer* proposer = arg;
-	struct paxos_client_value* v = &msg->u.client_value;
-	proposer_propose(proposer->state,
-		v->value.paxos_value_val,
-		v->value.paxos_value_len);
-	try_accept(proposer);
+    struct evproposer* proposer = arg;
+    struct paxos_client_value* v = &msg->u.client_value;
+    if(proposer->id == proposer->leaderId){
+        proposer_propose(proposer->state,
+                         v->value.paxos_value_val,
+                         v->value.paxos_value_len);
+        try_accept(proposer);
+    }
+    else{
+        //recupera o bufferevent do lider e encaminha a mensagem para ele.
+        struct bufferevent* leaderBuffer = get_leader_buffer(proposer->peers, proposer->leaderId);
+        send_paxos_message(leaderBuffer, msg);
+    }
 }
 
 static void
@@ -225,7 +236,7 @@ evproposer_handle_heartbeat(struct peer* p, paxos_message* msg, void* arg)
 
     //atualiza o momento do recebimento da mensagem
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, NULL);   
     //confirma que é um heartbeat válido
     if(heartbeat->pid == proposer->leaderId){
         proposer->last_heartbeat = now;

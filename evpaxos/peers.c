@@ -44,6 +44,7 @@ struct peer
 	int id;
 	int status;
 	enum peer_type type;
+	//TODO: here
 	struct bufferevent* bev;
 	struct event* reconnect_ev;
 	struct sockaddr_in addr;
@@ -165,6 +166,15 @@ peers_foreach_proposer(struct peers* p, peer_iter_cb cb, void* arg)
 	for (i = 0; i < p->peers_count; ++i)
 	    if(p->peers[i]->type==Proposer)
 		    cb(p->peers[i], arg);
+}
+
+struct bufferevent*
+get_leader_buffer(int leaderId, struct peers* p){
+    int i;
+    for (i = 0; i < p->peers_count; ++i)
+        if(p->peers[i]->type==Proposer && p->peers[i]->id == leaderId)
+            return peer_get_buffer(p->peers[i]);
+    return NULL;
 }
 
 void
