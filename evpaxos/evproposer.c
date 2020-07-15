@@ -175,8 +175,13 @@ evproposer_handle_client_value(struct peer* p, paxos_message* msg, void* arg)
     }
     else{
         //recupera o bufferevent do lider e encaminha a mensagem para ele.
-        struct bufferevent* leaderBuffer = get_leader_buffer(proposer->peers, proposer->leaderId);
-        send_paxos_message(leaderBuffer, msg);
+        struct bufferevent* leaderBuffer = get_leader_buffer(proposer->leaderId, proposer->peers);
+        if(leaderBuffer != NULL){
+            send_paxos_message(leaderBuffer, msg);
+        } else {
+            paxos_log_error("There is no leader!");
+        }
+
     }
 }
 
@@ -193,7 +198,7 @@ evproposer_handle_election_message(struct peer* p, paxos_message* msg, void* arg
 {
     struct evproposer* proposer = arg;
     paxos_election_message* election_message = &msg->u.election_message;
-    paxos_log_error("RECEIVED election message with iid %d", proposer->id);
+    paxos_log_error("RECEIVED election message with iid %d", election_message->pid);
     //deal with the election message here
     if(proposer->id>election_message->pid){
         //send election_answer here
@@ -208,7 +213,6 @@ static void
 evproposer_handle_election_answer(struct peer* p, paxos_message* msg, void* arg)
 {
     struct evproposer* proposer = arg;
-    paxos_election_answer* election_answer = &msg->u.election_answer;
     //devo me silenciar e esperar pelo fim da eleição.
     proposer->receivedAnswer=1;
 }
@@ -217,8 +221,6 @@ static void
 evproposer_handle_election_victory(struct peer* p, paxos_message* msg, void* arg)
 {
     struct evproposer* proposer = arg;
-    paxos_election_victory* election_victory = &msg->u.election_victory;
-    //deal with the election victory here
 
     //agora esse proposer esperará por heartbeat com esse pid every second.
     proposer->leaderId = msg->u.election_victory.pid;
@@ -240,6 +242,10 @@ evproposer_handle_heartbeat(struct peer* p, paxos_message* msg, void* arg)
     //confirma que é um heartbeat válido
     if(heartbeat->pid == proposer->leaderId){
         proposer->last_heartbeat = now;
+    } else{
+        if(proposer->id < heartbeat->pid){
+            proposer->leaderId = heartbeat->pid;
+        }
     }
 }
 
@@ -350,6 +356,10 @@ evproposer_init_internal(int id, struct evpaxos_config* c, struct peers* peers)
 	
 	p->state = proposer_new(p->id, acceptor_count);
 	p->peers = peers;
+
+    p->leaderId = -1;
+    p->receivedAnswer = 0;
+    p->last_heartbeat.tv_sec = -1;
 	
 	event_base_once(base, 0, EV_TIMEOUT, evproposer_preexec_once, p, NULL);
 
@@ -379,10 +389,6 @@ evproposer_init(int id, const char* config_file, struct event_base* base)
 		return NULL;
 	struct evproposer* p = evproposer_init_internal(id, config, peers);
 	evpaxos_config_free(config);
-
-	p->leaderId = -1;
-	p->receivedAnswer = 0;
-	p->last_heartbeat.tv_sec = -1;
 
 	return p;
 }
